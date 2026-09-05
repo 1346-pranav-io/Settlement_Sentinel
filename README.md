@@ -1,11 +1,17 @@
 # Settlement Sentinel
 
-Trust middleware for agentic payment settlements. This is a working
-prototype of the idea we discussed: a choke point that every autonomous
-agent (refund-recovery, payout, dispute-response, etc.) must pass through
-before it touches real settlement rails — with a deterministic risk engine,
-an independent LLM judge for flagged cases, an immutable audit ledger, and
-reversible/idempotent execution.
+Trust Middleware for Agentic Payment Settlements
+As AI agents become capable of initiating refunds, recovering payments, resolving disputes, and executing payouts autonomously, a critical gap emerges: there is no standardized trust layer between an agent’s decision and the movement of real money.
+Our prototype introduces a Trust Middleware — a mandatory control layer through which every agent-initiated settlement must pass before reaching payment rails.
+The middleware evaluates each transaction using a deterministic risk engine, routes high-risk or ambiguous cases to an independent LLM judge, records every decision in an immutable audit ledger, and executes approved actions through idempotent and reversible settlement workflows.
+
+In simple terms:
+
+Agent decides → Trust Layer verifies → Risk is evaluated → Decision is audited → Settlement executes safely
+
+This creates a controlled choke point for agentic finance, allowing autonomous agents to operate at scale without giving them unrestricted authority over real funds.
+
+The goal is not to replace agents — it is to make their financial actions governable, traceable, and reversible.
 
 ## Why this exists
 
