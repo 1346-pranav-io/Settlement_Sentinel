@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settlement Sentinel — Trust Middleware Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #000000;
+      --bg-card: rgba(255, 255, 255, 0.03);
+      --bg-core: rgba(255, 255, 255, 0.055);
+      --border-hair: rgba(255, 255, 255, 0.10);
+      --border-soft: rgba(255, 255, 255, 0.16);
+      --text-main: #ededed;
+      --text-muted: #a1a1aa;
+      --text-soft: #71717a;
+      /* Vercel accent: single interaction blue + semantic status colors */
+      --accent-indigo: #0070f3;
+      --accent-indigo-deep: #0060df;
+      --accent-indigo-glow: rgba(0, 112, 243, 0.35);
+      --accent-emerald: #3fb950;
+      --accent-amber: #f5a623;
+      --accent-rose: #f04438;
+      --accent-cyan: #1f9dff;
+      --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+      --radius-xl: 16px;
+      --radius-lg: 12px;
+      --radius-md: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+    }
+
+    /* Living ambient aurora — a slow, breathing light-field behind the content.
+       Purposeful and physical, never a flat gradient wallpaper. */
+    .aurora {
+      position: fixed;
+      inset: -20%;
+      z-index: 0;
+      pointer-events: none;
+      filter: blur(90px);
+      background:
+        radial-gradient(42% 38% at 22% 18%, rgba(0, 112, 243, 0.16), transparent 70%),
+        radial-gradient(34% 32% at 82% 28%, rgba(31, 157, 255, 0.10), transparent 70%),
+        radial-gradient(46% 42% at 58% 90%, rgba(63, 185, 80, 0.05), transparent 72%);
+      animation: auroraDrift 22s var(--ease-out) infinite alternate;
+    }
+    @keyframes auroraDrift {
+      0%   { transform: translate3d(-2%, -1%, 0) scale(1); }
+      50%  { transform: translate3d(2%, 2%, 0) scale(1.08); }
+      100% { transform: translate3d(-1%, 3%, 0) scale(0.97); }
+    }
+
+    /* Fixed film-grain overlay — pointer-events-none, fixed, GPU-safe */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+      opacity: 0.02;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .container {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 40px 28px 72px;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Scroll entry animation */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      filter: blur(4px);
+      transition:
+        opacity 0.7s var(--ease-out),
+        transform 0.7s var(--ease-snap),
+        filter 0.7s var(--ease-out);
+      will-change: transform, opacity;
+    }
+    .reveal.in-view {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+    /* Engineered staggered entrance — each sibling waits its turn */
+    .reveal-stagger > * {
+      opacity: 0;
+      transform: translateY(18px);
+      transition:
+        opacity 0.6s var(--ease-out),
+        transform 0.6s var(--ease-snap);
+    }
+    .reveal-stagger.in-view > * {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-stagger.in-view > *:nth-child(1) { transition-delay: 0.03s; }
+    .reveal-stagger.in-view > *:nth-child(2) { transition-delay: 0.10s; }
+    .reveal-stagger.in-view > *:nth-child(3) { transition-delay: 0.17s; }
+    .reveal-stagger.in-view > *:nth-child(4) { transition-delay: 0.24s; }
+    .reveal-stagger.in-view > *:nth-child(5) { transition-delay: 0.31s; }
+    .reveal-stagger.in-view > *:nth-child(6) { transition-delay: 0.38s; }
+
+    /* ===== Top nav / header ===== */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 26px;
+      margin-bottom: 34px;
+      flex-wrap: wrap;
+      gap: 18px;
+      opacity: 0;
+      animation: headerIn 0.9s var(--ease-out) 0.05s forwards;
+    }
+    @keyframes headerIn { to { opacity: 1; } }
+
+    .logo-group { display: flex; align-items: center; gap: 16px; }
+
+    .logo-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0070f3, #0058c7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 21px;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.2) inset,
+        0 10px 22px -8px rgba(0, 112, 243, 0.4);
+      position: relative;
+    }
+    .logo-icon::after {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.22), transparent 55%);
+      pointer-events: none;
+    }
+
+    .brand-lockup h1 {
+      font-size: 1.42rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      background: linear-gradient(to right, #ffffff 30%, #b8c2d0);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-lockup .subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      margin-top: 3px;
+    }
+
+    .status-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-hair);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--text-muted);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 12px var(--accent-emerald);
+      animation: dotPulse 2.4s var(--ease-out) infinite;
+    }
+    @keyframes dotPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(0.72); opacity: 0.55; }
+    }
+
+    /* ===== KPI stat strip ===== */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+    .kpi {
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-hair);
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--accent-indigo);
+      opacity: 0.8;
+    }
+    .kpi .kpi-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      margin-bottom: 8px;
+    }
+    .kpi .kpi-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    .kpi .kpi-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 7px; font-weight: 500; }
+    .kpi .accent-emerald { color: var(--accent-emerald); }
+    .kpi .accent-cyan { color: var(--accent-cyan); }
+    .kpi .accent-amber { color: var(--accent-amber); }
+    .kpi .accent-indigo { color: var(--accent-indigo); }
+    .kpi-value.mono { font-family: 'Geist Mono', monospace; font-size: 1.3rem; font-weight: 600; }
+
+    @media (max-width: 1024px) {
+      .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 560px) {
+      .kpi-strip { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .kpi .kpi-value { font-size: 1.3rem; }
+    }
+
+    /* ===== Scenario pills ===== */
+    .scenarios-section { margin-bottom: 26px; }
+    .scenarios-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      margin-bottom: 16px;
+    }
+    .scenarios-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn-scenario {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-hair);
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.2s var(--ease-out), border-color 0.2s var(--ease-out), background 0.2s var(--ease-out), color 0.2s var(--ease-out);
+    }
+    .btn-scenario:hover {
+      border-color: rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text-main);
+      transform: translateY(-1px);
+    }
+    .btn-scenario:active { transform: scale(0.98); }
+
+    /* ===== Double-bezel cards ===== */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      margin-bottom: 26px;
+    }
+    @media (max-width: 1024px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      position: relative;
+      border-radius: var(--radius-xl);
+      padding: 26px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+      border: 1px solid var(--border-hair);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset;
+      transition: border-color 0.4s var(--ease-out), box-shadow 0.5s var(--ease-out);
+    }
+    /* Cursor-following pointer spotlight — each card dims and lets the light
+       move with your hand. Bespoke, physical, not a static glow. */
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.35s var(--ease-out);
+      background: radial-gradient(
+        340px circle at var(--mx, 50%) var(--my, 50%),
+        rgba(0, 112, 243, 0.14),
+        transparent 62%
+      );
+      mix-blend-mode: screen;
+    }
+    .card:hover::before { opacity: 1; }
+    .card:hover {
+      border-color: var(--border-soft);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 24px 60px -30px rgba(0,0,0,0.6);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 22px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .card-title {
+      font-size: 1.02rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+    .card-title .title-chip {
+      width: 9px;
+      height: 9px;
+      border-radius: 3px;
+      background: var(--accent-indigo);
+      box-shadow: 0 0 12px rgba(0, 112, 243, 0.25);
+    }
+
+    /* ===== Form ===== */
+    .form-group { margin-bottom: 18px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 560px) { .form-row { grid-template-columns: 1fr; } }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    label .label-meta { color: var(--text-soft); font-weight: 500; }
+
+    input, select, textarea {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid var(--border-hair);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out), background 0.3s var(--ease-out);
+    }
+    input:hover, select:hover, textarea:hover { border-color: var(--border-soft); }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent-indigo);
+      box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.22);
+      background: rgba(0, 0, 0, 0.42);
+    }
+    textarea { resize: vertical; min-height: 92px; }
+    .range-container { display: flex; align-items: center; gap: 14px; }
+
+    .range-val {
+      font-family: 'Geist Mono', monospace;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--accent-indigo);
+      min-width: 46px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.14);
+      border: none;
+      padding: 0;
+      box-shadow: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid var(--accent-indigo);
+      cursor: pointer;
+      box-shadow: 0 2px 8px -1px rgba(0, 112, 243, 0.5);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid var(--accent-indigo);
+      cursor: pointer;
+      box-shadow: 0 2px 8px -1px rgba(0, 112, 243, 0.5);
+    }
+    input[type="range"]:focus { box-shadow: none; }
+
+    .btn-submit {
+      width: 100%;
+      margin-top: 8px;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 22px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-indigo-deep));
+      color: #fff;
+      border: none;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), filter 0.2s var(--ease-out);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.2) inset,
+        0 10px 26px -10px rgba(0, 112, 243, 0.5);
+    }
+    /* A soft light sweeping across the action on entry + hover — signals it's live */
+    .btn-submit::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -80%;
+      width: 55%;
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,0.35), transparent);
+      transform: skewX(-20deg);
+      animation: btnShine 4.5s var(--ease-out) infinite;
+    }
+    @keyframes btnShine {
+      0% { left: -80%; }
+      45% { left: 130%; }
+      100% { left: 130%; }
+    }
+    .btn-submit:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.2) inset,
+        0 14px 34px -12px rgba(0, 112, 243, 0.6);
+    }
+    .btn-submit:active { transform: scale(0.98); }
+    .btn-submit:disabled { opacity: 0.6; cursor: progress; transform: none; }
+    .btn-submit .arrow { display: inline-block; transition: transform 0.35s var(--ease-out); }
+    .btn-submit:hover .arrow { transform: translate(3px, -1px); }
+
+    /* ===== Verdict ===== */
+    .verdict-box {
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.32), rgba(0,0,0,0.18));
+      border: 1px solid var(--border-hair);
+      margin-bottom: 20px;
+      transition: border-color 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out), transform 0.5s var(--ease-snap);
+    }
+    /* Outcome-tinted life: the verdict frame quietly leans toward green (approved)
+       or red (rejected/escalated) as the decision lands. */
+    .verdict-container-approve .verdict-box {
+      border-color: rgba(63, 185, 80, 0.35);
+      box-shadow: 0 0 0 1px rgba(63, 185, 80, 0.08) inset, 0 24px 60px -34px rgba(63, 185, 80, 0.35);
+    }
+    .verdict-container-reject .verdict-box {
+      border-color: rgba(240, 68, 56, 0.35);
+      box-shadow: 0 0 0 1px rgba(240, 68, 56, 0.08) inset, 0 24px 60px -34px rgba(240, 68, 56, 0.35);
+    }
+    .verdict-container-escalated .verdict-box {
+      border-color: rgba(245, 166, 35, 0.35);
+      box-shadow: 0 0 0 1px rgba(245, 166, 35, 0.08) inset, 0 24px 60px -34px rgba(245, 166, 35, 0.35);
+    }
+    /* A quick, confident settle when a new verdict lands */
+    @keyframes verdictPop {
+      0% { transform: scale(0.97); }
+      55% { transform: scale(1.012); }
+      100% { transform: scale(1); }
+    }
+    .verdict-pop .verdict-box { animation: verdictPop 0.5s var(--ease-snap); }
+    .verdict-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .badge-verdict {
+      padding: 7px 16px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    .verdict-auto_approved, .verdict-judge_approved, .verdict-human_approved {
+      background: rgba(63, 185, 80, 0.14);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(63, 185, 80, 0.4);
+    }
+    .verdict-judge_rejected, .verdict-human_rejected {
+      background: rgba(240, 68, 56, 0.14);
+      color: var(--accent-rose);
+      border: 1px solid rgba(240, 68, 56, 0.4);
+    }
+    .verdict-escalated {
+      background: rgba(245, 166, 35, 0.14);
+      color: var(--accent-amber);
+      border: 1px solid rgba(245, 166, 35, 0.4);
+    }
+
+    .risk-score-bar-bg {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+      margin-bottom: 16px;
+    }
+    .risk-score-bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: var(--accent-emerald);
+      transition: width 0.9s var(--ease-snap), background-color 0.3s ease-out;
+      position: relative;
+      overflow: hidden;
+    }
+    /* A faint animated shimmer inside the gauge reads "measuring/live" */
+    .risk-score-bar-fill::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+      transform: translateX(-100%);
+      animation: gaugeShimmer 2.6s var(--ease-out) infinite;
+    }
+    @keyframes gaugeShimmer { to { transform: translateX(100%); } }
+    .flag-tag {
+      display: inline-block;
+      background: rgba(245, 166, 35, 0.1);
+      border: 1px solid rgba(245, 166, 35, 0.3);
+      color: #f5b860;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-right: 6px;
+      margin-top: 5px;
+      font-family: 'Geist Mono', monospace;
+    }
+    .trace-box {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-hair);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.78rem;
+      color: #c3cad6;
+      margin-top: 12px;
+      white-space: pre-wrap;
+      max-height: 150px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+
+    /* ===== Escalations ===== */
+    .escalation-item {
+      background: rgba(0, 0, 0, 0.24);
+      border: 1px solid rgba(245, 166, 35, 0.26);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      margin-bottom: 12px;
+      transition: border-color 0.3s var(--ease-out);
+    }
+    .escalation-item:hover { border-color: rgba(245, 166, 35, 0.5); }
+    .escalation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .escalation-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .btn-approve, .btn-reject {
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.3s var(--ease-out), background 0.3s var(--ease-out), color 0.3s var(--ease-out);
+    }
+    .btn-approve {
+      background: rgba(52, 211, 153, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      color: var(--accent-emerald);
+    }
+    .btn-approve:hover { background: var(--accent-emerald); color: #06251a; transform: translateY(-1px); }
+    .btn-reject {
+      background: rgba(240, 68, 56, 0.12);
+      border: 1px solid rgba(240, 68, 56, 0.45);
+      color: var(--accent-rose);
+    }
+    .btn-reject:hover { background: var(--accent-rose); color: #2b0a12; transform: translateY(-1px); }
+    .btn-approve:active, .btn-reject:active { transform: scale(0.97); }
+
+    /* ===== Ledger ===== */
+    .ledger-table-container {
+      overflow-x: auto;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-hair);
+      background: rgba(0, 0, 0, 0.2);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    th {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-soft);
+      font-weight: 700;
+      text-align: left;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-hair);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      white-space: nowrap;
+    }
+    td { padding: 14px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); vertical-align: middle; }
+    tbody tr { transition: background 0.25s var(--ease-out); }
+    tbody tr:hover { background: rgba(0, 112, 243, 0.05); }
+    tr:last-child td { border-bottom: none; }
+    .code-text { font-family: 'Geist Mono', monospace; font-size: 0.76rem; }
+    .hash-badge {
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--accent-cyan);
+      background: rgba(31, 157, 255, 0.08);
+      border: 1px solid rgba(31, 157, 255, 0.18);
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .ledger-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+    .btn-sec {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-hair);
+      color: var(--text-main);
+      padding: 9px 18px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.3s var(--ease-out), border-color 0.3s var(--ease-out), background 0.3s var(--ease-out);
+    }
+    .btn-sec:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: var(--border-soft);
+      transform: translateY(-1px);
+    }
+    .btn-sec:active { transform: scale(0.98); }
+    .alert-banner {
+      padding: 13px 18px;
+      border-radius: var(--radius-md);
+      font-size: 0.84rem;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+    }
+    .alert-valid {
+      background: rgba(63, 185, 80, 0.1);
+      border: 1px solid rgba(63, 185, 80, 0.3);
+      color: var(--accent-emerald);
+    }
+    .alert-invalid {
+      background: rgba(240, 68, 56, 0.1);
+      border: 1px solid rgba(240, 68, 56, 0.3);
+      color: var(--accent-rose);
+    }
+  </style>
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="logo-group">
+        <div class="logo-icon">🛡️</div>
+        <div class="brand-lockup">
+          <h1>Settlement Sentinel</h1>
+          <div class="subtitle">Autonomous Agent Trust & Settlement Middleware</div>
+        </div>
+      </div>
+      <div class="status-bar">
+        <div class="status-badge" id="judge-status">
+          <div class="dot"></div>
+          <span>Judge: Loading...</span>
+        </div>
+        <div class="status-badge" id="ledger-status">
+          <span>Ledger: Verifying...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- KPI stat strip -->
+    <div class="kpi-strip reveal-stagger reveal" id="kpi-strip">
+      <div class="kpi">
+        <div class="kpi-label">Judge Mode</div>
+        <div class="kpi-value mono accent-indigo" id="kpi-judge">…</div>
+        <div class="kpi-sub">Independent second opinion</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Ledger Integrity</div>
+        <div class="kpi-value accent-emerald" id="kpi-ledger">—</div>
+        <div class="kpi-sub">Hash-chained audit trail</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Pending Escalations</div>
+        <div class="kpi-value mono accent-amber count-up" id="kpi-escalations" data-target="0">0</div>
+        <div class="kpi-sub">Awaiting human review</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Ledger Entries</div>
+        <div class="kpi-value mono accent-cyan count-up" id="kpi-ledger-count" data-target="0">0</div>
+        <div class="kpi-sub">Appended immutably</div>
+      </div>
+    </div>
+
+    <!-- Preset Scenarios -->
+    <div class="scenarios-section reveal">
+      <div class="scenarios-title">Quick Demo Presets — Load Agent Intent</div>
+      <div class="scenarios-grid">
+        <button class="btn-scenario" onclick="loadScenario('routine')">
+          ⚡ Routine Refund ($45)
+        </button>
+        <button class="btn-scenario" onclick="loadScenario('large_payout')">
+          ⚖️ Large Payout ($15,000)
+        </button>
+        <button class="btn-scenario" onclick="loadScenario('uncertain')">
+          ⚠️ Uncertain Refund ($120)
+        </button>
+        <button class="btn-scenario" onclick="loadScenario('denylist')">
+          ⛔ Denylisted Target ($500)
+        </button>
+        <button class="btn-scenario" onclick="loadScenario('dispute')">
+          🛡️ Dispute Evidence ($450)
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-grid">
+      <!-- Left Column: Submit Intent Form -->
+      <div class="card reveal">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="title-chip"></span>
+            <span>Submit Settlement Intent</span>
+          </div>
+        </div>
+
+        <form id="intent-form" onsubmit="submitIntent(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="action_type">Action Type</label>
+              <select id="action_type" required>
+                <option value="refund">Refund</option>
+                <option value="payout">Payout</option>
+                <option value="dispute_response">Dispute Response</option>
+                <option value="ledger_adjustment">Ledger Adjustment</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="amount">Amount (INR)</label>
+              <input type="number" id="amount" step="0.01" value="45.00" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="merchant_id">Merchant ID</label>
+              <input type="text" id="merchant_id" value="merch_acme_corp" required>
+            </div>
+            <div class="form-group">
+              <label for="target_entity">Target Entity (Customer / Account)</label>
+              <input type="text" id="target_entity" value="cust_88219" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="agent_id">Agent ID</label>
+              <input type="text" id="agent_id" value="agent_refund_recovery_v1" required>
+            </div>
+            <div class="form-group">
+              <label for="agent_confidence">Agent Self Confidence</label>
+              <div class="range-container">
+                <input type="range" id="agent_confidence" min="0" max="1" step="0.05" value="0.95" oninput="document.getElementById('conf-val').innerText = (this.value * 100).toFixed(0) + '%'">
+                <span class="range-val" id="conf-val">95%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="agent_reasoning">Agent Reasoning Trace</label>
+            <textarea id="agent_reasoning" required>Customer double-charged due to gateway retry; matched duplicate transaction IDs in last 10 mins, refunding duplicate.</textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="idempotency_key">
+              Idempotency Key 
+              <a href="#" style="color: var(--accent-cyan); font-size: 0.75rem; margin-left: 8px;" onclick="genIdemKey(); return false;">[Generate New]</a>
+            </label>
+            <input type="text" id="idempotency_key" class="code-text" required>
+          </div>
+
+          <button type="submit" class="btn-submit" id="btn-submit-intent">
+            <span>Pass Through Sentinel Gateway</span>
+            <span class="arrow">➔</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Right Column: Latest Response & Escalation Queue -->
+      <div class="card reveal">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="title-chip"></span>
+            <span>Sentinel Decision & Execution</span>
+          </div>
+        </div>
+
+        <div id="verdict-container">
+          <div class="verdict-box" style="text-align: center; color: var(--text-muted); padding: 40px 20px;">
+            Submit an intent or click a scenario preset to test the deterministic risk engine & LLM judge pipeline.
+          </div>
+        </div>
+
+        <!-- Pending Escalations Section -->
+        <div style="margin-top: 24px;">
+          <div class="card-header" style="margin-bottom: 12px;">
+            <div class="card-title" style="font-size: 0.95rem;">
+              <span class="title-chip" style="background: var(--accent-amber); box-shadow: 0 0 12px rgba(245, 166, 35, 0.25);"></span>
+              <span>Human Escalation Queue</span>
+            </div>
+            <button class="btn-sec" style="padding: 5px 14px; font-size: 0.75rem;" onclick="loadEscalations()">Refresh Queue</button>
+          </div>
+          <div id="escalations-list">
+            <div style="font-size: 0.85rem; color: var(--text-muted); padding: 12px; text-align: center; background: rgba(0,0,0,0.2); border-radius: 8px;">
+              No pending human escalations.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audit Ledger Visualizer -->
+    <div class="card reveal">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="title-chip"></span>
+          <span>Immutable Hash-Chained Audit Ledger</span>
+        </div>
+        <div class="ledger-actions">
+          <button class="btn-sec" onclick="verifyLedger()">
+            🔍 Verify Hash Chain
+          </button>
+          <button class="btn-sec" style="border-color: rgba(240, 68, 56, 0.4); color: #fca5a5;" onclick="tamperLedger()">
+            ⚠️ Simulate DB Tamper
+          </button>
+        </div>
+      </div>
+
+      <div id="ledger-alert"></div>
+
+      <div class="ledger-table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Seq #</th>
+              <th>Timestamp</th>
+              <th>Type</th>
+              <th>Details</th>
+              <th>Hash</th>
+              <th>Prev Hash</th>
+            </tr>
+          </thead>
+          <tbody id="ledger-body">
+            <tr>
+              <td colspan="6" style="text-align: center; color: var(--text-muted);">Loading audit log...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function genIdemKey() {
+      const key = 'idem_' + Math.random().toString(36).substring(2, 14);
+      document.getElementById('idempotency_key').value = key;
+    }
+    genIdemKey();
+
+    // Check health
+    async function checkHealth() {
+      try {
+        const res = await fetch('/v1/health');
+        const data = await res.json();
+        const el = document.getElementById('judge-status');
+        el.querySelector('span').innerText = `Judge: ${data.judge_mode.toUpperCase()}`;
+        const kpiJudge = document.getElementById('kpi-judge');
+        if (kpiJudge) {
+          kpiJudge.innerText = data.judge_mode === 'llm' ? 'LLM' : 'RULE';
+          kpiJudge.className = 'kpi-value mono ' + (data.judge_mode === 'llm' ? 'accent-indigo' : 'accent-emerald');
+        }
+        if (data.judge_mode === 'llm') {
+          el.style.borderColor = 'rgba(0, 112, 243, 0.5)';
+        }
+      } catch (err) {
+        console.error('Health check error:', err);
+      }
+    }
+    checkHealth();
+
+    const presets = {
+      routine: {
+        action_type: 'refund',
+        amount: 45.00,
+        merchant_id: 'merch_acme_corp',
+        target_entity: 'cust_88219',
+        agent_id: 'agent_refund_recovery_v1',
+        agent_confidence: 0.95,
+        agent_reasoning: 'Customer double-charged due to gateway retry; matched duplicate transaction IDs in last 10 mins, refunding duplicate.'
+      },
+      large_payout: {
+        action_type: 'payout',
+        amount: 15000.00,
+        merchant_id: 'merch_acme_corp',
+        target_entity: 'bank_acct_4492',
+        agent_id: 'agent_payout_v1',
+        agent_confidence: 0.90,
+        agent_reasoning: 'Weekly settlement payout for merchant merch_acme_corp based on reconciled transaction volume for past 7 days.'
+      },
+      uncertain: {
+        action_type: 'refund',
+        amount: 120.00,
+        merchant_id: 'merch_acme_corp',
+        target_entity: 'cust_77123',
+        agent_id: 'agent_refund_recovery_v1',
+        agent_confidence: 0.40,
+        agent_reasoning: 'Customer complained about failed order. Inventory system is unverified, but complaint looks similar so I guess it is legitimate.'
+      },
+      denylist: {
+        action_type: 'payout',
+        amount: 500.00,
+        merchant_id: 'merch_acme_corp',
+        target_entity: 'acct_flagged_9911',
+        agent_id: 'agent_payout_v1',
+        agent_confidence: 0.90,
+        agent_reasoning: 'Standard payout run, account matched saved merchant payout details.'
+      },
+      dispute: {
+        action_type: 'dispute_response',
+        amount: 450.00,
+        merchant_id: 'merch_acme_corp',
+        target_entity: 'dispute_disp_88192',
+        agent_id: 'agent_dispute_response_v1',
+        agent_confidence: 0.85,
+        agent_reasoning: 'Dispute disp_88192: matched delivery confirmation and customer signature on file, submitting evidence to contest chargeback.'
+      }
+    };
+
+    function loadScenario(name) {
+      const p = presets[name];
+      if (!p) return;
+      document.getElementById('action_type').value = p.action_type;
+      document.getElementById('amount').value = p.amount;
+      document.getElementById('merchant_id').value = p.merchant_id;
+      document.getElementById('target_entity').value = p.target_entity;
+      document.getElementById('agent_id').value = p.agent_id;
+      document.getElementById('agent_confidence').value = p.agent_confidence;
+      document.getElementById('conf-val').innerText = (p.agent_confidence * 100).toFixed(0) + '%';
+      document.getElementById('agent_reasoning').value = p.agent_reasoning;
+      genIdemKey();
+    }
+
+    async function submitIntent(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-submit-intent');
+      btn.disabled = true;
+      btn.innerText = 'Evaluating Intent...';
+
+      const payload = {
+        action_type: document.getElementById('action_type').value,
+        amount: parseFloat(document.getElementById('amount').value),
+        merchant_id: document.getElementById('merchant_id').value,
+        target_entity: document.getElementById('target_entity').value,
+        agent_id: document.getElementById('agent_id').value,
+        agent_confidence: parseFloat(document.getElementById('agent_confidence').value),
+        agent_reasoning: document.getElementById('agent_reasoning').value,
+        idempotency_key: document.getElementById('idempotency_key').value,
+      };
+
+      try {
+        const res = await fetch('/v1/settlement-intents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        renderVerdict(data);
+        loadLedger();
+        loadEscalations();
+      } catch (err) {
+        alert('Submission failed: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Pass Through Sentinel Gateway</span><span class="arrow">➔</span>';
+      }
+    }
+
+    function renderVerdict(data) {
+      const score = data.risk_score;
+      let barColor = 'var(--accent-emerald)';
+      if (score > 30) barColor = 'var(--accent-amber)';
+      if (score > 70) barColor = 'var(--accent-rose)';
+
+      const flagsHtml = (data.flags || []).map(f => `<span class="flag-tag">${f}</span>`).join('');
+      
+      let judgeHtml = '';
+      if (data.judge_verdict) {
+        judgeHtml = `
+          <div style="margin-top: 12px; font-size: 0.85rem;">
+            <strong>LLM Judge Verdict:</strong> 
+            <span style="color: ${data.judge_verdict.decision === 'approve' ? 'var(--accent-emerald)' : 'var(--accent-rose)'}; font-weight: 600;">
+              ${data.judge_verdict.decision.toUpperCase()}
+            </span> 
+            <span style="color: var(--text-muted);">(${data.judge_verdict.source})</span>
+            <div class="trace-box">${data.judge_verdict.reasoning}</div>
+          </div>
+        `;
+      }
+
+      let execHtml = '';
+      if (data.execution) {
+        execHtml = `
+          <div style="margin-top: 10px; font-size: 0.8rem; color: var(--accent-emerald);" class="code-text">
+            ✓ Executed: TX ID = ${data.execution.tx_id} ${data.execution.idempotent_replay ? '(Idempotent Replay)' : ''}
+          </div>
+        `;
+      }
+
+      const html = `
+        <div class="verdict-box">
+          <div class="verdict-header">
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">INTENT ID: ${data.intent_id}</div>
+              <div style="font-size: 1rem; font-weight: 600; margin-top: 2px;">${data.message}</div>
+            </div>
+            <span class="badge-verdict verdict-${data.verdict}">${data.verdict.replace('_', ' ')}</span>
+          </div>
+
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
+              <span>Risk Score Evaluation</span>
+              <span style="font-weight: 600; color: ${barColor};">${score} / 100</span>
+            </div>
+            <div class="risk-score-bar-bg">
+              <div class="risk-score-bar-fill" style="width: ${score}%; background-color: ${barColor};"></div>
+            </div>
+          </div>
+
+          ${flagsHtml ? `<div style="margin-bottom: 8px;">${flagsHtml}</div>` : ''}
+          ${judgeHtml}
+          ${execHtml}
+        </div>
+      `;
+      document.getElementById('verdict-container').innerHTML = html;
+
+      // Tint + pop the verdict frame by outcome for a live, physical landing.
+      const vc = document.getElementById('verdict-container');
+      vc.className = '';
+      if (/approve/.test(data.verdict)) vc.classList.add('verdict-container-approve');
+      else if (/reject/.test(data.verdict)) vc.classList.add('verdict-container-reject');
+      else vc.classList.add('verdict-container-escalated');
+      vc.classList.remove('verdict-pop');
+      void vc.offsetWidth; /* reflow to restart the pop keyframe */
+      vc.classList.add('verdict-pop');
+    }
+
+    async function loadEscalations() {
+      try {
+        const res = await fetch('/v1/escalations');
+        const list = await res.json();
+        const container = document.getElementById('escalations-list');
+        const kpiEsc = document.getElementById('kpi-escalations');
+        if (kpiEsc) { kpiEsc.dataset.target = Array.isArray(list) ? list.length : 0; countUp(kpiEsc); }
+        if (!list || list.length === 0) {
+          container.innerHTML = `
+            <div style="font-size: 0.85rem; color: var(--text-muted); padding: 12px; text-align: center; background: rgba(0,0,0,0.2); border-radius: 8px;">
+              No pending human escalations.
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = list.map(item => `
+          <div class="escalation-item">
+            <div class="escalation-header">
+              <span class="code-text" style="color: var(--accent-amber); font-weight: 600;">ID: ${item.escalation_id}</span>
+              <span class="flag-tag">Risk ${item.risk_score}</span>
+            </div>
+            <div style="font-size: 0.85rem; margin-bottom: 6px;">
+              <strong>${item.intent.action_type.toUpperCase()}</strong>: INR ${item.intent.amount} → ${item.intent.target_entity}
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">
+              Agent: ${item.intent.agent_id} | Reasoning: ${item.intent.agent_reasoning}
+            </div>
+            <div class="escalation-actions">
+              <button class="btn-approve" onclick="resolveEscalation('${item.escalation_id}', true)">Approve & Execute</button>
+              <button class="btn-reject" onclick="resolveEscalation('${item.escalation_id}', false)">Reject & Dismiss</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Error loading escalations:', err);
+      }
+    }
+
+    async function resolveEscalation(escId, approve) {
+      try {
+        const res = await fetch(`/v1/escalations/${escId}/resolve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approve, resolver: 'ops_dashboard_user', note: 'Resolved via Web Dashboard' })
+        });
+        const data = await res.json();
+        renderVerdict(data);
+        loadEscalations();
+        loadLedger();
+      } catch (err) {
+        alert('Resolution error: ' + err.message);
+      }
+    }
+
+    async function loadLedger() {
+      try {
+        const res = await fetch('/v1/ledger?limit=15');
+        const entries = await res.json();
+        const tbody = document.getElementById('ledger-body');
+        const kpiCount = document.getElementById('kpi-ledger-count');
+        if (kpiCount && Array.isArray(entries)) { kpiCount.dataset.target = entries.length; countUp(kpiCount); }
+        if (!entries || entries.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Ledger is empty. Submit an intent above!</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = entries.reverse().map(e => {
+          const dt = new Date(e.timestamp * 1000).toLocaleTimeString();
+          const p = e.payload || {};
+          let details = p.type || 'entry';
+          if (p.decision) {
+            details = `${p.intent.action_type} (${p.decision.verdict})`;
+          } else if (p.type === 'reversal') {
+            details = `Reversal of ${p.tx_id}`;
+          }
+
+          return `
+            <tr>
+              <td class="code-text" style="font-weight: 600;">#${e.seq}</td>
+              <td style="color: var(--text-muted);">${dt}</td>
+              <td><span class="flag-tag" style="background: rgba(31,157,255,0.12); color: var(--accent-cyan); border-color: rgba(31,157,255,0.3);">${p.type || 'log'}</span></td>
+              <td style="font-weight: 500;">${details}</td>
+              <td><span class="hash-badge">${e.hash.substring(0, 10)}...</span></td>
+              <td><span class="hash-badge" style="color: var(--text-muted);">${e.prev_hash ? e.prev_hash.substring(0, 10) + '...' : 'GENESIS'}</span></td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Error loading ledger:', err);
+      }
+    }
+
+    async function verifyLedger() {
+      try {
+        const res = await fetch('/v1/ledger/verify');
+        const data = await res.json();
+        const alertEl = document.getElementById('ledger-alert');
+        const statusEl = document.getElementById('ledger-status');
+        const kpiLedger = document.getElementById('kpi-ledger');
+
+        if (data.valid) {
+          alertEl.innerHTML = `<div class="alert-banner alert-valid">✓ Hash Chain Integrity Verified: All cryptographic block hashes and sequence chains are intact. No tampering detected.</div>`;
+          statusEl.querySelector('span').innerText = 'Ledger: Valid ✓';
+          statusEl.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+          if (kpiLedger) { kpiLedger.innerText = 'VERIFIED'; kpiLedger.className = 'kpi-value accent-emerald'; }
+        } else {
+          alertEl.innerHTML = `<div class="alert-banner alert-invalid">🚨 Cryptographic Hash Mismatch Detected! ${data.error}</div>`;
+          statusEl.querySelector('span').innerText = 'Ledger: TAMPERED ❌';
+          statusEl.style.borderColor = 'rgba(244, 63, 94, 0.4)';
+          if (kpiLedger) { kpiLedger.innerText = 'TAMPERED'; kpiLedger.className = 'kpi-value accent-rose'; }
+        }
+      } catch (err) {
+        alert('Verification error: ' + err.message);
+      }
+    }
+
+    async function tamperLedger() {
+      if (!confirm('This will deliberately modify a row in SQLite to demonstrate tamper detection. Continue?')) return;
+      try {
+        const res = await fetch('/v1/ledger/tamper-test', { method: 'POST' });
+        const data = await res.json();
+        alert(data.message);
+        verifyLedger();
+        loadLedger();
+      } catch (err) {
+        alert('Tamper test failed: ' + err.message);
+      }
+    }
+
+    // Cursor-following spotlight: each card's ::before glow tracks the pointer.
+    document.querySelectorAll('.card').forEach((card) => {
+      card.addEventListener('pointermove', (e) => {
+        const rect = card.getBoundingClientRect();
+        card.style.setProperty('--mx', (e.clientX - rect.left) + 'px');
+        card.style.setProperty('--my', (e.clientY - rect.top) + 'px');
+      });
+    });
+
+    // Premier KPI count-up: numbers roll into place instead of snapping.
+    function countUp(el) {
+      const target = parseInt(el.dataset.target, 10) || 0;
+      if (el.dataset.animating === '1') return;
+      el.dataset.animating = '1';
+      const dur = 900;
+      const start = performance.now();
+      function tick(now) {
+        const p = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * eased);
+        if (p < 1) requestAnimationFrame(tick);
+        else { el.textContent = target; el.dataset.animating = '0'; }
+      }
+      requestAnimationFrame(tick);
+    }
+
+    // Reveal-on-scroll for premium entry animation (IntersectionObserver, GPU-safe)
+    const revealEls = document.querySelectorAll('.reveal');
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    revealEls.forEach((el) => revealObserver.observe(el));
+
+    // Initial load
+    loadEscalations();
+    loadLedger();
+    verifyLedger();
+  </script>
+</body>
+</html>
