@@ -13,7 +13,10 @@ from __future__ import annotations
 import time
 from collections import defaultdict, deque
 
-from .models import ActionType, RiskAssessment, SettlementIntent
+try:
+    from app.models import ActionType, RiskAssessment, SettlementIntent
+except ImportError:
+    from .models import ActionType, RiskAssessment, SettlementIntent  # type: ignore
 
 # --- Configurable thresholds -------------------------------------------------
 

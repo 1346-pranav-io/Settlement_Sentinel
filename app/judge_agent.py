@@ -20,7 +20,10 @@ import re
 
 import requests
 
-from .models import JudgeVerdict, RiskAssessment, SettlementIntent
+try:
+    from app.models import JudgeVerdict, RiskAssessment, SettlementIntent
+except ImportError:
+    from .models import JudgeVerdict, RiskAssessment, SettlementIntent  # type: ignore
 
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 JUDGE_MODEL = "claude-sonnet-5"

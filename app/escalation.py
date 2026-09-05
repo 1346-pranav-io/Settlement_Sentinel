@@ -12,7 +12,10 @@ import time
 import uuid
 from dataclasses import dataclass, field
 
-from .models import JudgeVerdict, RiskAssessment, SettlementIntent
+try:
+    from app.models import JudgeVerdict, RiskAssessment, SettlementIntent
+except ImportError:
+    from .models import JudgeVerdict, RiskAssessment, SettlementIntent  # type: ignore
 
 
 @dataclass

@@ -14,7 +14,10 @@ from __future__ import annotations
 import time
 import uuid
 
-from .models import ExecutionResult, SettlementIntent
+try:
+    from app.models import ExecutionResult, SettlementIntent
+except ImportError:
+    from .models import ExecutionResult, SettlementIntent  # type: ignore
 
 REVERSAL_WINDOW_SECONDS = 300  # 5 minutes for this demo; real system would vary by rail
 

@@ -13,9 +13,16 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .models import SentinelResponse, SettlementIntent
-from .risk_engine import RiskRulesEngine
-from .sentinel import SettlementSentinel
+try:
+    # Absolute imports (used by Vercel serverless via api/index.py)
+    from app.models import SentinelResponse, SettlementIntent
+    from app.risk_engine import RiskRulesEngine
+    from app.sentinel import SettlementSentinel
+except ImportError:
+    # Relative imports (used when running locally as a package: uvicorn app.main:app)
+    from .models import SentinelResponse, SettlementIntent  # type: ignore
+    from .risk_engine import RiskRulesEngine  # type: ignore
+    from .sentinel import SettlementSentinel  # type: ignore
 
 # In production this denylist would be loaded from a fraud/compliance service.
 # Hardcoded here just so the demo has something concrete to hard-block on.

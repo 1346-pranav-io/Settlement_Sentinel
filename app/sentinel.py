@@ -12,18 +12,32 @@ escalation rather than defaulting to execution.
 """
 from __future__ import annotations
 
-from .escalation import EscalationQueue
-from .execution import SettlementExecutor
-from .judge_agent import JudgeAgent
-from .ledger import AuditLedger
-from .models import (
-    Decision,
-    RiskAssessment,
-    SentinelResponse,
-    SettlementIntent,
-    Verdict,
-)
-from .risk_engine import RiskRulesEngine
+try:
+    from app.escalation import EscalationQueue
+    from app.execution import SettlementExecutor
+    from app.judge_agent import JudgeAgent
+    from app.ledger import AuditLedger
+    from app.models import (
+        Decision,
+        RiskAssessment,
+        SentinelResponse,
+        SettlementIntent,
+        Verdict,
+    )
+    from app.risk_engine import RiskRulesEngine
+except ImportError:
+    from .escalation import EscalationQueue  # type: ignore
+    from .execution import SettlementExecutor  # type: ignore
+    from .judge_agent import JudgeAgent  # type: ignore
+    from .ledger import AuditLedger  # type: ignore
+    from .models import (  # type: ignore
+        Decision,
+        RiskAssessment,
+        SentinelResponse,
+        SettlementIntent,
+        Verdict,
+    )
+    from .risk_engine import RiskRulesEngine  # type: ignore
 
 
 class SettlementSentinel:

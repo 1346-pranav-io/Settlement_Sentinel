@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 import time
 from dataclasses import dataclass
@@ -43,7 +44,16 @@ class LedgerEntry:
 
 
 class AuditLedger:
-    def __init__(self, db_path: str = "data/ledger.db"):
+    def __init__(self, db_path: str | None = None):
+        # Default: use /tmp on Vercel (read-only FS everywhere else),
+        # fall back to data/ledger.db for local runs where data/ exists.
+        if db_path is None:
+            local_path = "data/ledger.db"
+            try:
+                os.makedirs("data", exist_ok=True)
+                db_path = local_path
+            except OSError:
+                db_path = "/tmp/ledger.db"
         self.db_path = db_path
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         self._conn.execute(
