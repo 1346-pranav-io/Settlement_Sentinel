@@ -112,6 +112,50 @@ curl -X POST http://localhost:8000/v1/settlement-intents \
 pytest tests/ -v
 ```
 
+## Deploying to Vercel
+
+This project is configured for one-click deployment to Vercel as a Python serverless function.
+
+### Project structure for Vercel
+
+```
+api/
+  index.py        - Vercel entry point: patches sys.path and re-exports the FastAPI app
+app/
+  ...             - all application modules (unchanged for local use)
+app/static/
+  index.html      - dashboard UI, served via Vercel's CDN at the root URL
+vercel.json       - build + routing config
+```
+
+The key constraints Vercel imposes on Python serverless functions — and how we handle them:
+
+| Constraint | What we do |
+|---|---|
+| Relative imports (`from .models`) crash in isolation | `api/index.py` adds the project root to `sys.path`; all modules use absolute imports with a relative fallback |
+| Filesystem is read-only except `/tmp` | `AuditLedger` auto-detects and writes to `/tmp/ledger.db` on Vercel (falls back to `data/ledger.db` locally) |
+| Can't mount `StaticFiles` at runtime | `vercel.json` routes `/` and `/static/*` to `app/static/` via Vercel's CDN |
+
+### Deploy
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/1346-pranav-io/Settlement_Sentinel)
+
+Or via CLI:
+```
+npm i -g vercel
+vercel
+```
+
+### Environment variables
+
+Set these in your Vercel project dashboard under **Settings → Environment Variables**:
+
+| Variable | Required | Description |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Optional | If set, the judge uses a real Claude model as the independent reviewer. If unset, a heuristic fallback is used so the pipeline still runs. |
+
+> **Note:** The audit ledger uses SQLite stored in `/tmp` on Vercel. This means ledger data is ephemeral per-function-instance and does not persist across cold starts. For production, swap `AuditLedger` to use a persistent database (Postgres, PlanetScale, etc.).
+
 ## Plugging in the real judge model
 
 By default, with no `ANTHROPIC_API_KEY` set, the judge uses a heuristic
